@@ -22,6 +22,10 @@ public class EmailService {
     }
 
     public void sendScreenshots(List<File> screenshots, String formEmail) {
+        sendFormSubmissionEmail(screenshots, null, formEmail);
+    }
+
+    public void sendFormSubmissionEmail(List<File> screenshots, File pdfFile, String formEmail) {
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
@@ -42,13 +46,30 @@ public class EmailService {
             message.setSubject("Zoho Form Submitted - " + formEmail);
 
             MimeBodyPart textPart = new MimeBodyPart();
-            textPart.setText("Form submission completed successfully for: " + formEmail + "\n\nPlease find attached screenshots of each page.");
+            StringBuilder emailBody = new StringBuilder();
+            emailBody.append("Form submission completed successfully for: ").append(formEmail).append("\n\n");
+
+            if (pdfFile != null && pdfFile.exists()) {
+                emailBody.append("The PDF response is attached to this email.\n\n");
+            }
+
+            emailBody.append("Please find attached screenshots of each page.");
+            textPart.setText(emailBody.toString());
 
             Multipart multipart = new MimeMultipart();
             multipart.addBodyPart(textPart);
 
+            // Attach PDF first if available
+            if (pdfFile != null && pdfFile.exists()) {
+                MimeBodyPart pdfPart = new MimeBodyPart();
+                pdfPart.attachFile(pdfFile);
+                multipart.addBodyPart(pdfPart);
+                System.out.println("Attached PDF: " + pdfFile.getName());
+            }
+
+            // Attach screenshots
             for (File screenshot : screenshots) {
-                if (screenshot.exists()) {
+                if (screenshot != null && screenshot.exists()) {
                     MimeBodyPart attachmentPart = new MimeBodyPart();
                     attachmentPart.attachFile(screenshot);
                     multipart.addBodyPart(attachmentPart);
